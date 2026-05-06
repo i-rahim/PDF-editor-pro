@@ -9,7 +9,6 @@ from pypdf import PdfWriter, PdfReader
 from PIL import Image
 
 def resource_path(relative_path):
-    
     try:
         base_path = sys._MEIPASS
     except Exception:
@@ -20,10 +19,10 @@ class PDFEditor(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PDF Editor 1.0")
-        self.setFixedSize(500, 600)
+        self.setFixedSize(500, 650) # Boyutu biraz artırdık yeni buton için
         self.setWindowIcon(QIcon(resource_path("icon.png")))
         
-        # --- MESAJ BOX STYLE ---
+        # --- STYLE SHEET ---
         self.setStyleSheet("""
             QMainWindow, QWidget { 
                 background-color: #F2EEEB; 
@@ -44,8 +43,8 @@ class PDFEditor(QMainWindow):
                 margin-top: 5px;
                 margin-bottom: 50px;
                 background-color: transparent;
-                border-bottom: 2px solid #0D0D0D; /* Line color and thickness */
-                padding-bottom: 5px; /* Distance between text and the line */
+                border-bottom: 2px solid #0D0D0D;
+                padding-bottom: 5px;
             }
 
             QPushButton { 
@@ -58,87 +57,66 @@ class PDFEditor(QMainWindow):
                 margin-bottom: 15px;
                 color: #ffffff;
                 text-align: center;
+                background: #403F3E;
             }
             
+            QPushButton:hover { 
+                background: #0D0D0D; 
+                color: #A6A5A4; 
+            }
+
             #footer { 
-                font-size: 11px;
-                color: #4ade80; 
-                margin-top: 100px; /* Reduced because the spacer will do the work */
-                margin-bottom: 5px; 
+                font-size: 11px; 
+                color: #0D0D0D; 
+                margin-top: 25px; 
                 background: transparent; 
             }
-            
-            
-            #btn_merge {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #403F3E, stop:1 #403F3E);
-                
-            }
-            #btn_merge:hover { background: #0D0D0D; color: #A6A5A4 }
 
-            #btn_split {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #403F3E, stop:1 #403F3E);
-                
-            }
-            #btn_split:hover { background: #0D0D0D; color: #A6A5A4 }
-
-            #btn_photo {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #403F3E, stop:1 #403F3E);
-                
-            }
-            #btn_photo:hover { background: #0D0D0D; color: #A6A5A4 }
-
-            #footer { font-size: 11px; color: #0D0D0D; margin-top: 25px; background: transparent; }
-
-            /* MESAJ Box (QMessageBox) clear */
             QMessageBox {
                 background-color: #FFAE00;
-                border: 1px solid #38bdf8;
             }
-            /* icon and text background clear */
             QMessageBox QLabel {
                 color: #f8fafc;
                 font-size: 14px;
                 font-family: 'Segoe UI';
-                background-color: transparent; /* background color clear */
-                padding: 5px;
+                background-color: transparent;
             }
             QMessageBox QPushButton {
                 background-color: #334155;
                 color: white;
                 min-width: 80px;
                 padding: 8px;
-                border: 1px solid #38bdf8;
-                margin-bottom: 5px;
-            }
-            QMessageBox QPushButton:hover {
-                background-color: #38bdf8;
-                color: #0f172a;
             }
         """)
 
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # --- Title Label ---
+        # --- UI Elements ---
         self.label = QLabel("PDF Editor")
         self.label.setObjectName("title_label")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.label)
 
+        # Merge Button
         self.btn_merge = QPushButton("📂  MERGE PDF FILES")
-        self.btn_merge.setObjectName("btn_merge")
         self.btn_merge.clicked.connect(self.pdf_merge)
         layout.addWidget(self.btn_merge)
 
+        # Split Button
         self.btn_split = QPushButton("✂️  SPLIT PDF PAGES (ALL)")
-        self.btn_split.setObjectName("btn_split")
         self.btn_split.clicked.connect(self.pdf_ayir)
         layout.addWidget(self.btn_split)
 
+        # Photo to PDF Button
         self.btn_photo = QPushButton("📸   CREATE A PDF FROM AN IMAGE")
-        self.btn_photo.setObjectName("btn_photo")
         self.btn_photo.clicked.connect(self.photo_to_pdf)
         layout.addWidget(self.btn_photo)
+
+        # COMPRESS Button (New)
+        self.btn_compress = QPushButton("📉   COMPRESS PDF")
+        self.btn_compress.clicked.connect(self.pdf_compress)
+        layout.addWidget(self.btn_compress)
 
         footer = QLabel("2026 Copyright - RI")
         footer.setObjectName("footer")
@@ -153,7 +131,7 @@ class PDFEditor(QMainWindow):
     def apply_dark_title_bar(self):
         try:
             hwnd = int(self.winId())
-            value = ctypes.c_int(0)
+            value = ctypes.c_int(1) # Dark mode title bar
             ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(value), ctypes.sizeof(value))
         except: pass
 
@@ -163,11 +141,11 @@ class PDFEditor(QMainWindow):
             try:
                 merger = PdfWriter()
                 for pdf in dosyalar: merger.append(pdf)
-                kayit, _ = QFileDialog.getSaveFileName(self, "Save", "newpdf_doc.pdf", "PDF (*.pdf)")
+                kayit, _ = QFileDialog.getSaveFileName(self, "Save", "merged_doc.pdf", "PDF (*.pdf)")
                 if kayit:
                     with open(kayit, "wb") as f: merger.write(f)
                     self.show_msg("Successful", "The files have been successfully merged!")
-            except Exception as e: self.show_msg("Error", f"Hata: {str(e)}", True)
+            except Exception as e: self.show_msg("Error", f"Error: {str(e)}", True)
 
     def pdf_ayir(self):
         dosya, _ = QFileDialog.getOpenFileName(self, "Select the PDF to Split", "", "PDF (*.pdf)")
@@ -179,10 +157,10 @@ class PDFEditor(QMainWindow):
                     for i, sayfa in enumerate(reader.pages):
                         writer = PdfWriter()
                         writer.add_page(sayfa)
-                        with open(os.path.join(klasor, f"sayfa_{i+1}.pdf"), "wb") as f:
+                        with open(os.path.join(klasor, f"page_{i+1}.pdf"), "wb") as f:
                             writer.write(f)
-                    self.show_msg("Successful", f"{len(reader.pages)} pages have been saved to the folder!")
-                except Exception as e: self.show_msg("Error", f"İşlem başarısız: {str(e)}", True)
+                    self.show_msg("Successful", f"{len(reader.pages)} pages have been saved!")
+                except Exception as e: self.show_msg("Error", f"Error: {str(e)}", True)
 
     def photo_to_pdf(self):
         photoler, _ = QFileDialog.getOpenFileNames(self, "Select Images", "", "Images (*.jpg *.png *.jpeg)")
@@ -192,8 +170,6 @@ class PDFEditor(QMainWindow):
                 pdf_sayfalari = []
                 for r in photoler:
                     img = Image.open(r)
-                    
-                    # High-quality conversion
                     if img.mode in ("RGBA", "P"):
                         canvas = Image.new("RGB", img.size, (255, 255, 255))
                         canvas.paste(img.convert("RGBA"), mask=img.convert("RGBA").split()[3])
@@ -201,7 +177,6 @@ class PDFEditor(QMainWindow):
                     else:
                         img = img.convert('RGB')
                     
-                    # Resize while keeping maximum quality
                     img.thumbnail((A4_W, A4_H), Image.Resampling.LANCZOS)
                     sayfa = Image.new('RGB', (A4_W, A4_H), (255, 255, 255))
                     sayfa.paste(img, ((A4_W - img.width) // 2, (A4_H - img.height) // 2))
@@ -210,15 +185,39 @@ class PDFEditor(QMainWindow):
                 if pdf_sayfalari:
                     kayit, _ = QFileDialog.getSaveFileName(self, "Save", "image_pdf.pdf", "PDF (*.pdf)")
                     if kayit:
-                        # quality=100 and subsampling=0 ensures maximum detail retention
-                        pdf_sayfalari[0].save(
-                            kayit, 
-                            save_all=True, 
-                            append_images=pdf_sayfalari[1:], 
-                            quality=100, 
-                            subsampling=0
-                        )
-                        self.show_msg("Successful", "Image to PDF has been created!")
+                        pdf_sayfalari[0].save(kayit, save_all=True, append_images=pdf_sayfalari[1:], quality=100)
+                        self.show_msg("Successful", "Image to PDF created!")
+            except Exception as e: self.show_msg("Error", f"Error: {str(e)}", True)
+
+    def pdf_compress(self):
+        dosya, _ = QFileDialog.getOpenFileName(self, "Select PDF to Compress", "", "PDF (*.pdf)")
+        if dosya:
+            try:
+                old_size = os.path.getsize(dosya) / (1024 * 1024)
+                reader = PdfReader(dosya)
+                writer = PdfWriter()
+
+                for page in reader.pages:
+                    writer.add_page(page)
+
+                # Tarama dosyaları için görsel sıkıştırma (quality=60)
+                for page in writer.pages:
+                    for img in page.images:
+                        img.replace(img.image, quality=60)
+
+                kayit, _ = QFileDialog.getSaveFileName(self, "Save Compressed PDF", "compressed_doc.pdf", "PDF (*.pdf)")
+                if kayit:
+                    with open(kayit, "wb") as f:
+                        writer.write(f)
+                    
+                    new_size = os.path.getsize(kayit) / (1024 * 1024)
+                    reduction = ((old_size - new_size) / old_size) * 100
+                    
+                    self.show_msg("Successful", 
+                                 f"Compression Finished!\n\n"
+                                 f"Original: {old_size:.2f} MB\n"
+                                 f"Compressed: {new_size:.2f} MB\n"
+                                 f"Reduction: %{reduction:.1f}")
             except Exception as e: self.show_msg("Error", f"Error: {str(e)}", True)
 
     def show_msg(self, baslik, mesaj, is_error=False):
@@ -230,8 +229,8 @@ class PDFEditor(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    if os.name == 'nt': # Sadece Windows ise
-        myappid = 'mycompany.myproduct.subproduct.version'
+    if os.name == 'nt':
+        myappid = 'mycompany.pdfeditor.v1'
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     app.setStyle("Fusion")
     window = PDFEditor()
